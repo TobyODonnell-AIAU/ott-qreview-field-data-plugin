@@ -37,12 +37,16 @@ artifacts:
     name: ThePlugin
     type: file
 
+  - path: src\QReview\deploy\Release\QReview-net10.plugin
+    name: ThePlugin-net10
+    type: file
+
 deploy:
   - provider: GitHub
     tag: v$(APPVEYOR_BUILD_VERSION)
     release: OTT QReview field data plugin $(APPVEYOR_BUILD_VERSION)
     description: ''
-    artifact: ThePlugin
+    artifact: ThePlugin, ThePlugin-net10
     auth_token: $(GITHUB_AUTH_TOKEN)
     on:
       is_not_pr: true
