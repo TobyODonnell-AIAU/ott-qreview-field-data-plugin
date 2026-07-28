@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Text;
 using FieldDataPluginFramework;
 using FieldDataPluginFramework.Context;
 using FieldDataPluginFramework.Results;
@@ -8,6 +9,12 @@ namespace QReview
 {
     public class Plugin : IFieldDataPlugin
     {
+        static Plugin()
+        {
+            // Included to avoid "'Windows-1252' is not a supported encoding name" error in net10
+            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+        }
+
         public ParseFileResult ParseFile(Stream fileStream, IFieldDataResultsAppender appender, ILog logger)
         {
             return ParseFile(fileStream, null, appender, logger);

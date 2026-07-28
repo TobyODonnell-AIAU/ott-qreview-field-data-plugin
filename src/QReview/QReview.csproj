@@ -1,72 +1,52 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{E69A04C9-9F11-4C49-87FC-A095364352E6}</ProjectGuid>
-    <OutputType>Library</OutputType>
-    <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>QReview</RootNamespace>
+    <TargetFrameworks>net472;net10.0</TargetFrameworks>
     <AssemblyName>QReview</AssemblyName>
-    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
-    <FileAlignment>512</FileAlignment>
-    <TargetFrameworkProfile />
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <RootNamespace>QReview</RootNamespace>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <Deterministic>true</Deterministic>
     <PlatformTarget>x64</PlatformTarget>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <!-- NU1702: FieldDataPluginFramework.dll is a net472-only assembly referenced directly during migration — expected and acceptable -->
+    <NoWarn>$(NoWarn);NU1702</NoWarn>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
-    <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-    <PlatformTarget>x64</PlatformTarget>
+
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net10.0'">
+    <LangVersion>latest</LangVersion>
   </PropertyGroup>
+
   <ItemGroup>
-    <Reference Include="FieldDataPluginFramework, Version=2.9.0.0, Culture=neutral, processorArchitecture=AMD64">
-      <HintPath>..\packages\Aquarius.FieldDataFramework.20.2.5\lib\net472\FieldDataPluginFramework.dll</HintPath>
+    <!-- 'Private' needed for net10 - FieldDataPluginFramework already loaded into the Default
+         AssemblyLoadContext, a second reference fails with an InvalidCastException. -->
+    <Reference Include="FieldDataPluginFramework" Condition="'$(TargetFramework)' == 'net10.0'">
+      <HintPath>$(NuGetPackageRoot)\aquarius.fielddataframework\20.2.5\lib\net472\FieldDataPluginFramework.dll</HintPath>
+      <Private>false</Private>
     </Reference>
+    <PackageReference Include="Aquarius.FieldDataFramework" Version="20.2.5" Condition="'$(TargetFramework)' == 'net472'" />
+  </ItemGroup>
+
+  <!-- Microsoft.VisualBasic (TextFieldParser), System.Xml(.Linq) are inbox on net10.0 -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
     <Reference Include="Microsoft.VisualBasic" />
-    <Reference Include="System" />
-    <Reference Include="System.Core" />
-    <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Xml" />
+    <Reference Include="System.Xml.Linq" />
+    <!-- Required for legacy code pages (e.g. Windows-1252) on net472; inbox on net10.0 (NU1510) -->
+    <PackageReference Include="System.Text.Encoding.CodePages" Version="9.0.0" />
   </ItemGroup>
-  <ItemGroup>
-    <Compile Include="Config.cs" />
-    <Compile Include="ConfigLoader.cs" />
-    <Compile Include="Mappers\DischargeActivityMapper.cs" />
-    <Compile Include="Mappers\FieldVisitMapper.cs" />
-    <Compile Include="Mappers\MeterCalibrationMapper.cs" />
-    <Compile Include="Mappers\CalibrationsMapper.cs" />
-    <Compile Include="Mappers\VerticalMapper.cs" />
-    <Compile Include="Parser.cs" />
-    <Compile Include="Plugin.cs" />
-    <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="SystemCode\Parameters.cs" />
-    <Compile Include="SystemCode\Units.cs" />
-    <Compile Include="TsvParser.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="packages.config" />
-    <None Include="Readme.md" />
-  </ItemGroup>
-  <ItemGroup />
-  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+
   <PropertyGroup>
-    <PostBuildEvent>$(SolutionDir)packages\Aquarius.FieldDataFramework.20.2.5\tools\PluginPackager.exe $(TargetPath) /OutputPath=$(ProjectDir)deploy\$(Configuration)\$(TargetName).plugin
-$(SolutionDir)packages\Aquarius.FieldDataFramework.20.2.5\tools\PluginTester.exe /Plugin=$(TargetPath) /Data=$(SolutionDir)..\data\SALLY_WARD_Summary.TSV</PostBuildEvent>
+    <PluginPackagerExe Condition="'$(TargetFramework)' == 'net472'">$(NuGetPackageRoot)\aquarius.fielddataframework\20.2.5\tools\PluginPackager.exe</PluginPackagerExe>
+    <!-- TODO: once Aquarius.FieldDataFramework ships a dual-targeted (net472+net10.0) NuGet package,
+         this net10.0 path should point at the real published tools\net10.0 folder instead of a manually-copied local one. -->
+    <PluginPackagerExe Condition="'$(TargetFramework)' == 'net10.0'">$(NuGetPackageRoot)\aquarius.fielddataframework\20.2.5\tools\net10.0\PluginPackager.exe</PluginPackagerExe>
+    <PluginTesterExe Condition="'$(TargetFramework)' == 'net472'">$(NuGetPackageRoot)\aquarius.fielddataframework\20.2.5\tools\PluginTester.exe</PluginTesterExe>
+    <PluginTesterExe Condition="'$(TargetFramework)' == 'net10.0'">$(NuGetPackageRoot)\aquarius.fielddataframework\20.2.5\tools\net10.0\PluginTester.exe</PluginTesterExe>
+    <PackagedPluginName Condition="'$(TargetFramework)' == 'net472'">$(AssemblyName).plugin</PackagedPluginName>
+    <PackagedPluginName Condition="'$(TargetFramework)' == 'net10.0'">$(AssemblyName)-net10.plugin</PackagedPluginName>
   </PropertyGroup>
+
+  <Target Name="PackageAndTestPlugin" AfterTargets="Build" Condition="Exists('$(PluginPackagerExe)') And Exists('$(PluginTesterExe)')">
+    <Exec Command="&quot;$(PluginPackagerExe)&quot; &quot;$(TargetPath)&quot; /OutputPath=&quot;$(ProjectDir)deploy\$(Configuration)\$(PackagedPluginName)&quot;" />
+    <Exec Command="&quot;$(PluginTesterExe)&quot; /Plugin=&quot;$(TargetPath)&quot; /Data=&quot;$(SolutionDir)..\data\SALLY_WARD_Summary.TSV&quot;" />
+  </Target>
 </Project>
